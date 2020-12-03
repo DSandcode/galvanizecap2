@@ -1,7 +1,4 @@
-import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
-import scipy.stats as stats
 import urllib.request, json
 import requests
 import zipfile
@@ -21,7 +18,9 @@ def get_user_beatmaps(userid):
 
 
 def store_mapids(userid, beatmaps_json):
-    np.save(f"data/mapids/{userid}.npy", np.array([i["id"] for i in beatmaps_json]))
+    beatmapsids = np.array([i["id"] for i in beatmaps_json])
+    np.save(f"data/{userid}/{userid}.npy", beatmapsids)
+    return beatmapsids
 
 
 def download_url(url, save_path, chunk_size=128):
@@ -37,16 +36,58 @@ def unzip(zip_path, extract_path):
 
 
 def move_osu_files(source_dir, dest_dir):
-    os.mkdir(dest_dir)
     files = glob.iglob(os.path.join(source_dir, "*.osu"))
     for file in files:
         if os.path.isfile(file):
             shutil.copy2(file, dest_dir)
 
 
+def get_user_ranked_maps(userid):
+
+    try:
+        os.mkdir("data")
+    except:
+        pass
+
+    try:
+        os.mkdir(f"data/{userid}")
+    except:
+        pass
+
+    user_json = get_user_beatmaps(userid)
+    mapids = store_mapids(userid, user_json)
+
+    for beatmap_id in mapids:
+
+        try:
+            os.mkdir(f"data/{userid}/{beatmap_id}")
+            os.mkdir(f"data/{userid}/{beatmap_id}/osz")
+            os.mkdir(f"data/{userid}/{beatmap_id}/unzipped_osz")
+            os.mkdir(f"data/{userid}/{beatmap_id}/songs_osu_files")
+        except:
+            pass
+        try:
+            download_url(
+                f"https://bloodcat.com/osu/s/{beatmap_id}",
+                f"data/{userid}/{beatmap_id}/osz/{beatmap_id}.osz",
+            )
+
+            unzip(
+                f"data/{userid}/{beatmap_id}/osz/{beatmap_id}.osz",
+                f"data/{userid}/{beatmap_id}/unzipped_osz/",
+            )
+
+            move_osu_files(
+                f"data/{userid}/{beatmap_id}/unzipped_osz/",
+                f"data/{userid}/{beatmap_id}/songs_osu_files/",
+            )
+        except:
+            pass
+
+
 if __name__ == "__main__":
-    userid = "4452992"
-    beatmaps_json = get_user_beatmaps(userid)
+    userid = "33599"
+    # beatmaps_json = get_user_beatmaps(userid)
 
     # store_mapids(userid, beatmaps_json)
 
@@ -58,3 +99,4 @@ if __name__ == "__main__":
 
     # move_osu_files("data/unzipped_osz/1272018", "data/songs_osu_files/1272018")
 
+    get_user_ranked_maps(userid)
